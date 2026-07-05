@@ -34,6 +34,8 @@ data class GameUiState(
     val packId: Int,
     val levelNumber: Int,
     val lastPour: PourEvent? = null,
+    /** Pack names whose unlock threshold this solve crossed, for the win dialog. */
+    val newlyUnlockedPacks: List<String> = emptyList(),
 )
 
 /** Emitted once per successful pour so the UI can animate/haptic it. */
@@ -123,6 +125,10 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                     val packId = pack.id
                     val level = levelNumber
                     val moves = engine.moveCount
+                    val unlocked = newlyUnlockedPacks(packId, level)
+                    if (unlocked.isNotEmpty()) {
+                        uiState = uiState.copy(newlyUnlockedPacks = unlocked)
+                    }
                     viewModelScope.launch {
                         progressRepository.recordSolve(packId, level, moves)
                     }
@@ -133,6 +139,16 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                 uiState = snapshot().copy(selectedTube = newSelection)
             }
         }
+    }
+
+    /** Pack names this solve unlocks, empty when replaying a solved level. */
+    private fun newlyUnlockedPacks(packId: Int, level: Int): List<String> {
+        val current = progress.value
+        if (current.isSolved(packId, level)) return emptyList()
+        return Packs.newlyUnlocked(
+            before = { current.solvedInPack(it) },
+            after = { current.solvedInPack(it) + if (it == packId) 1 else 0 },
+        ).map { it.name }
     }
 
     fun onUndo() {

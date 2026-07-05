@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import uk.co.tjcdeveloper.opencoloursort.ui.components.PrimaryButton
 import uk.co.tjcdeveloper.opencoloursort.ui.components.SecondaryButton
+import uk.co.tjcdeveloper.opencoloursort.ui.theme.Accent
 import uk.co.tjcdeveloper.opencoloursort.ui.theme.LocalScheme
 
 /**
@@ -38,6 +39,7 @@ fun WinDialog(
     levelLabel: String,
     moves: Int,
     undosUsed: Int,
+    unlockedPacks: List<String>,
     onReplay: () -> Unit,
     onNextLevel: () -> Unit,
 ) {
@@ -100,6 +102,38 @@ fun WinDialog(
                 if (undosUsed == 0) "$moves moves · no undos" else "$moves moves · $undosUsed undos",
                 style = TextStyle(fontSize = 14.sp, color = scheme.textMuted),
             )
+            if (unlockedPacks.isNotEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 14.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(scheme.raised)
+                        .padding(vertical = 10.dp, horizontal = 12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    BasicText(
+                        if (unlockedPacks.size == 1) "NEW PACK UNLOCKED" else "NEW PACKS UNLOCKED",
+                        style = TextStyle(
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp,
+                            color = Accent.link,
+                        ),
+                    )
+                    for (name in unlockedPacks) {
+                        BasicText(
+                            name,
+                            style = TextStyle(
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = scheme.textBright,
+                            ),
+                        )
+                    }
+                }
+            }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

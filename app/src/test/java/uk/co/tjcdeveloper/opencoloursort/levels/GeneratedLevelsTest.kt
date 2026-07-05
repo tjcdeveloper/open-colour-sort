@@ -91,6 +91,23 @@ class GeneratedLevelsTest {
     }
 
     @Test
+    fun `crossing a threshold reports newly unlocked packs exactly once`() {
+        // 10th Beginner solve unlocks Easy 1 alone.
+        assertEquals(
+            listOf("Easy 1"),
+            Packs.newlyUnlocked(solved(0 to 9), solved(0 to 10)).map { it.name },
+        )
+        // 10th Easy 2 solve unlocks Intermediate 1 AND the Final Challenge.
+        assertEquals(
+            listOf("Intermediate 1", "Final Challenge"),
+            Packs.newlyUnlocked(solved(2 to 9), solved(2 to 10)).map { it.name },
+        )
+        // No threshold crossed: nothing to announce.
+        assertTrue(Packs.newlyUnlocked(solved(0 to 5), solved(0 to 6)).isEmpty())
+        assertTrue(Packs.newlyUnlocked(solved(0 to 10), solved(0 to 11)).isEmpty())
+    }
+
+    @Test
     fun `packs follow each other in play order`() {
         assertEquals(1, Packs.nextPack(0)?.id)
         assertEquals(9, Packs.nextPack(8)?.id)

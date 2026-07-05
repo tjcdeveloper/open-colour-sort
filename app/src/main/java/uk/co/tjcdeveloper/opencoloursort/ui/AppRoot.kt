@@ -83,6 +83,7 @@ fun AppRoot(
                     levelLabel = state.levelLabel,
                     moves = state.moveCount,
                     undosUsed = state.undosUsed,
+                    unlockedPacks = state.newlyUnlockedPacks,
                     onReplay = viewModel::onRestart,
                     onNextLevel = viewModel::nextLevel,
                 )

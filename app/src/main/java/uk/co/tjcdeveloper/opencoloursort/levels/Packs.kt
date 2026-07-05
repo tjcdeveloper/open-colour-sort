@@ -58,6 +58,15 @@ object Packs {
         return solvedInPack(rule.inPackId) >= rule.solves
     }
 
+    /**
+     * Packs that unlock when solve counts move from [before] to [after], in
+     * play order. Solve counts only grow, so a pack appears here exactly
+     * once - on the solve that crosses its threshold - which makes this the
+     * "announce a new pack" signal with no stored flag needed.
+     */
+    fun newlyUnlocked(before: (Int) -> Int, after: (Int) -> Int): List<Pack> =
+        all.filter { !isUnlocked(it, before) && isUnlocked(it, after) }
+
     /** Level label per the handoff: "27" classic, "3 · HARD" hard. */
     fun levelLabel(pack: Pack, levelNumber: Int): String =
         if (pack.isHard) "$levelNumber · HARD" else levelNumber.toString()
