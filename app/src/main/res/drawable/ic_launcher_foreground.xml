@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="128"
+    android:viewportHeight="128">
+
+    <!-- Left tube: mixed. Layers top→bottom yellow, blue, red, green -->
+    <group>
+        <clip-path android:pathData="M29,32 a4,4 0 0 1 4,-4 h16 a4,4 0 0 1 4,4 v58 a10,10 0 0 1 -10,10 h-4 a10,10 0 0 1 -10,-10 z" />
+        <path android:fillColor="#e9c23a" android:pathData="M29,28h24v18h-24z" />
+        <path android:fillColor="#3f7fd8" android:pathData="M29,46h24v18h-24z" />
+        <path android:fillColor="#dd4a44" android:pathData="M29,64h24v18h-24z" />
+        <path android:fillColor="#57ab4a" android:pathData="M29,82h24v18h-24z" />
+    </group>
+    <path
+        android:strokeColor="#F2FFFFFF"
+        android:strokeWidth="4"
+        android:fillColor="#00000000"
+        android:pathData="M27,32 a6,6 0 0 1 6,-6 h16 a6,6 0 0 1 6,6 v58 a12,12 0 0 1 -12,12 h-4 a12,12 0 0 1 -12,-12 z" />
+
+    <!-- Right tube: blocked mid-game. Three green on top, bottom yellow, hairlines above greens -->
+    <group>
+        <clip-path android:pathData="M75,32 a4,4 0 0 1 4,-4 h16 a4,4 0 0 1 4,4 v58 a10,10 0 0 1 -10,10 h-4 a10,10 0 0 1 -10,-10 z" />
+        <path android:fillColor="#57ab4a" android:pathData="M75,28h24v54h-24z" />
+        <path android:fillColor="#e9c23a" android:pathData="M75,82h24v18h-24z" />
+        <path android:fillColor="#26000000" android:pathData="M75,28h24v1h-24z" />
+        <path android:fillColor="#26000000" android:pathData="M75,46h24v1h-24z" />
+        <path android:fillColor="#26000000" android:pathData="M75,64h24v1h-24z" />
+    </group>
+    <path
+        android:strokeColor="#F2FFFFFF"
+        android:strokeWidth="4"
+        android:fillColor="#00000000"
+        android:pathData="M73,32 a6,6 0 0 1 6,-6 h16 a6,6 0 0 1 6,6 v58 a12,12 0 0 1 -12,12 h-4 a12,12 0 0 1 -12,-12 z" />
+</vector>
