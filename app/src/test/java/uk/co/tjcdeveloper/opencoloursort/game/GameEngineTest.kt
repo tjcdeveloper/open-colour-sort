@@ -133,9 +133,10 @@ class GameEngineTest {
     }
 
     @Test
-    fun `not stuck while the extra tube is unused`() {
+    fun `stuck even while the extra tube is unused`() {
+        // The dialog offers the vial as an escape; using it clears the jam.
         val e = engine("rgrg", "grgr", extraTubes = 1)
-        assertFalse(e.isStuck)
+        assertTrue(e.isStuck)
         assertTrue(e.useExtraTube())
         assertFalse(e.isStuck) // the new empty tube takes any full run
     }

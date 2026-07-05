@@ -92,7 +92,9 @@ fun AppRoot(
                 StalemateDialog(
                     levelLabel = state.levelLabel,
                     moves = state.moveCount,
+                    canAddVial = state.extraTubesRemaining > 0,
                     canUndo = state.canUndo,
+                    onAddVial = viewModel::onExtraTube,
                     onUndo = viewModel::onUndo,
                     onRestart = viewModel::onRestart,
                 )

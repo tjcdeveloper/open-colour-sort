@@ -76,14 +76,12 @@ class GameEngine(
     }
 
     /**
-     * Stalemate: the level is unsolved and every remaining option is a dead
-     * end — no legal pour can move a complete colour run (any pour would only
-     * split one), and no extra tube remains to open the board up. Undo may
-     * still be possible; callers decide whether to offer it.
+     * Stalemate: the level is unsolved and no legal pour can move a complete
+     * colour run (any pour would only split one). The extra tube or an undo
+     * may still rescue the game; callers offer whichever escapes remain.
      */
     val isStuck: Boolean
-        get() = !isSolved && extraTubesRemaining <= 0 &&
-            board.tubes.indices.none { from -> hasFullRunPour(from) }
+        get() = !isSolved && board.tubes.indices.none { from -> hasFullRunPour(from) }
 
     /** Some legal pour from [from] moves its entire top run. */
     private fun hasFullRunPour(from: Int): Boolean {

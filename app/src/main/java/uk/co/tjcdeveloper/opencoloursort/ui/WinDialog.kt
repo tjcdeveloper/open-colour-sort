@@ -148,15 +148,18 @@ fun WinDialog(
 }
 
 /**
- * Stalemate dialog, mirroring the win dialog's design: shown when no pour can
- * move a complete colour run and the extra tube is spent. Undo appears as the
- * secondary action while any undos are left to escape with.
+ * Stalemate dialog, mirroring the win dialog's design: shown as soon as no
+ * pour can move a complete colour run. Every remaining escape is offered -
+ * the extra vial (primary, when unused), undo (while any remain), and
+ * restart. Using the vial or undoing dismisses the dialog into play.
  */
 @Composable
 fun StalemateDialog(
     levelLabel: String,
     moves: Int,
+    canAddVial: Boolean,
     canUndo: Boolean,
+    onAddVial: () -> Unit,
     onUndo: () -> Unit,
     onRestart: () -> Unit,
 ) {
@@ -208,14 +211,26 @@ fun StalemateDialog(
                 "Level $levelLabel · $moves moves",
                 style = TextStyle(fontSize = 14.sp, color = scheme.textMuted),
             )
+            if (canAddVial) {
+                PrimaryButton(
+                    "Use extra vial",
+                    onAddVial,
+                    Modifier.fillMaxWidth().padding(top = 18.dp),
+                    height = 48,
+                )
+            }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 18.dp),
+                    .padding(top = if (canAddVial) 2.dp else 18.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 if (canUndo) SecondaryButton("Undo", onUndo, Modifier.weight(1f))
-                PrimaryButton("Restart", onRestart, Modifier.weight(1f), height = 48)
+                if (canAddVial) {
+                    SecondaryButton("Restart", onRestart, Modifier.weight(1f))
+                } else {
+                    PrimaryButton("Restart", onRestart, Modifier.weight(1f), height = 48)
+                }
             }
         }
     }
