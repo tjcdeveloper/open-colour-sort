@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.width
@@ -151,17 +152,27 @@ private fun CoverGameScreen(
         }
 
         val spec = if (state.isHard) HardCoverSpec else ClassicCoverSpec
-        val boardWidth = if (state.isHard) 300.dp else 340.dp
+        // Classic boards keep the handoff's four columns up to 8 tubes; wider
+        // boards (7+ colours, or the extra vial) fit five per row instead of
+        // spilling a lone tube onto a third row.
+        val boardWidth = when {
+            state.isHard -> 300.dp
+            state.board.tubes.size <= 8 -> 340.dp
+            else -> 360.dp
+        }
         val gap = if (state.isHard) 14.dp else 16.dp
 
-        // Board area: hard boards are taller than the viewport and scroll
-        // vertically behind top/bottom fade gradients (2a).
-        Box(Modifier.fillMaxWidth().weight(1f).padding(top = 10.dp)) {
+        // Board area: tall boards scroll behind top/bottom fade gradients
+        // (2a). The min-height keeps centering safe: content is never larger
+        // than the scroll range, so the edges stay reachable.
+        BoxWithConstraints(Modifier.fillMaxWidth().weight(1f).padding(top = 10.dp)) {
+            val viewportHeight = maxHeight
             val scroll = rememberScrollState()
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(scroll),
+                    .fillMaxWidth()
+                    .verticalScroll(scroll)
+                    .heightIn(min = viewportHeight),
                 contentAlignment = Alignment.Center,
             ) {
                 BoardFlow(state, settings, spec, boardWidth, gap, onTubeTapped)
@@ -221,7 +232,12 @@ private fun UnfoldedGameScreen(
             verticalArrangement = Arrangement.Center,
         ) {
             val spec = if (state.isHard) HardInnerSpec else ClassicInnerSpec
-            val boardWidth = if (state.isHard) 500.dp else 440.dp
+            // Four columns up to 8 tubes (1h look), five for wider boards.
+            val boardWidth = when {
+                state.isHard -> 500.dp
+                state.board.tubes.size <= 8 -> 336.dp
+                else -> 440.dp
+            }
             val gap = if (state.isHard) 12.dp else 20.dp
             BoardFlow(state, settings, spec, boardWidth, gap, onTubeTapped)
             BasicText(

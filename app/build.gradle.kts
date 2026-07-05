@@ -14,7 +14,7 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = 1
-        versionName = "0.1.2"
+        versionName = "0.1.3"
 
         // Testing helper: unlocks every level. false here and in release so it
         // can only ever be true in local debug builds.
