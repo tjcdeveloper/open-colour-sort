@@ -6,6 +6,8 @@ package uk.co.tjcdeveloper.opencoloursort.levels
  */
 data class Pack(
     val id: Int,
+    /** Stable identifier used in progress keys - never rename or reuse. */
+    val slug: String,
     val name: String,
     val levels: List<List<String>>,
     val capacity: Int,
@@ -19,9 +21,9 @@ object Packs {
     /** All shipped packs, in play order: finishing one flows into the next. */
     val all: List<Pack> =
         PackPlan.classicPacks.mapIndexed { index, plan ->
-            Pack(index, plan.name, GeneratedLevels.classic[index], capacity = 4, isHard = false)
+            Pack(index, plan.slug, plan.name, GeneratedLevels.classic[index], capacity = 4, isHard = false)
         } + Pack(
-            FINAL_CHALLENGE_ID, "Final Challenge", GeneratedLevels.hard,
+            FINAL_CHALLENGE_ID, "final-challenge", "Final Challenge", GeneratedLevels.hard,
             capacity = PackPlan.HARD_CAPACITY, isHard = true,
         )
 

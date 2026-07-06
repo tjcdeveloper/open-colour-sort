@@ -101,16 +101,16 @@ class GameEngineTest {
     }
 
     @Test
-    fun `hasAnyMove false when stuck`() {
+    fun `stuck with no empty tube regardless of the unused vial`() {
         // Two full tubes of alternating colours, no empties: no legal pour.
         val e = engine("rgrg", "grgr")
-        assertFalse(e.hasAnyMove())
+        assertTrue(e.isStuck)
     }
 
     @Test
-    fun `hasAnyMove true when an empty tube exists`() {
+    fun `not stuck when an empty tube exists`() {
         val e = engine("rgrg", "grgr", "")
-        assertTrue(e.hasAnyMove())
+        assertFalse(e.isStuck)
     }
 
     @Test
@@ -158,6 +158,29 @@ class GameEngineTest {
         assertFalse(e.canUndo)
         assertFalse(e.undo())
         assertEquals(5, e.undosUsed)
+    }
+
+    @Test
+    fun `restore rebuilds a mid-level session with working undo and restart`() {
+        val original = engine("ryy", "byy", "")
+        original.pour(0, 1)
+        val initial = Board.parse(listOf("ryy", "byy", ""), 4)
+        val restored = GameEngine.restore(
+            initialBoard = initial,
+            currentBoard = original.board,
+            moveCount = original.moveCount,
+            undosUsed = original.undosUsed,
+            extraTubesRemaining = original.extraTubesRemaining,
+            history = original.historySnapshot(),
+        )
+        assertEquals(original.board, restored.board)
+        assertEquals(1, restored.moveCount)
+        assertTrue(restored.canUndo)
+        assertTrue(restored.undo())
+        assertEquals(initial, restored.board)
+        restored.restart()
+        assertEquals(initial, restored.board)
+        assertEquals(0, restored.moveCount)
     }
 
     @Test

@@ -1,13 +1,14 @@
 package uk.co.tjcdeveloper.opencoloursort.ui
 
-import android.app.Application
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import uk.co.tjcdeveloper.opencoloursort.data.Progress
 import uk.co.tjcdeveloper.opencoloursort.data.ProgressRepository
+import uk.co.tjcdeveloper.opencoloursort.data.SavedSession
+import uk.co.tjcdeveloper.opencoloursort.data.SessionRepository
 import uk.co.tjcdeveloper.opencoloursort.game.Board
 import uk.co.tjcdeveloper.opencoloursort.game.GameEngine
 import uk.co.tjcdeveloper.opencoloursort.levels.Pack
@@ -41,9 +42,10 @@ data class GameUiState(
 /** Emitted once per successful pour so the UI can animate/haptic it. */
 data class PourEvent(val from: Int, val to: Int, val moved: Int, val id: Long)
 
-class GameViewModel(app: Application) : AndroidViewModel(app) {
-
-    private val progressRepository = ProgressRepository(app)
+class GameViewModel(
+    private val progressRepository: ProgressRepository,
+    private val sessionRepository: SessionRepository,
+) : ViewModel() {
 
     val progress: StateFlow<Progress> = progressRepository.progress
         .stateIn(viewModelScope, SharingStarted.Eagerly, Progress(emptyMap()))
@@ -59,23 +61,47 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         private set
 
     init {
-        // Resume at the first unsolved level of the first incomplete pack.
-        // One-shot: later progress changes must not yank the player around.
+        // Resume the persisted in-progress game if there is one; otherwise
+        // the first unsolved level of the first incomplete pack. One-shot:
+        // later progress changes must not yank the player around.
         viewModelScope.launch {
+            if (uiState.moveCount != 0) return@launch
+            val saved = sessionRepository.session.first()
+            if (saved != null && restoreSession(saved)) return@launch
             val stored = progressRepository.progress.first()
             val (targetPack, targetLevel) = firstUnsolved(stored)
-            if (uiState.moveCount == 0 &&
-                (targetPack != pack.id || targetLevel != levelNumber)
-            ) {
+            if (targetPack != pack.id || targetLevel != levelNumber) {
                 loadLevel(targetPack, targetLevel)
             }
         }
     }
 
+    /** Rebuild the engine from a saved mid-level session. False if stale. */
+    private fun restoreSession(saved: SavedSession): Boolean {
+        val savedPack = Packs.all.firstOrNull { it.slug == saved.packSlug } ?: return false
+        if (saved.level !in 1..savedPack.levels.size) return false
+        val current = runCatching { Board.parse(saved.tubes, savedPack.capacity) }
+            .getOrNull() ?: return false
+        if (current.isSolved) return false
+        pack = savedPack
+        levelNumber = saved.level
+        engine = GameEngine.restore(
+            initialBoard = Board.parse(savedPack.levels[saved.level - 1], savedPack.capacity),
+            currentBoard = current,
+            moveCount = saved.moveCount,
+            undosUsed = saved.undosUsed,
+            extraTubesRemaining = saved.extraTubesRemaining,
+            history = saved.history,
+        )
+        solveRecorded = false
+        uiState = snapshot()
+        return true
+    }
+
     private fun firstUnsolved(progress: Progress): Pair<Int, Int> {
         for (candidate in Packs.all.filter { !it.isHard }) {
             for (level in 1..candidate.levels.size) {
-                if (!progress.isSolved(candidate.id, level)) return candidate.id to level
+                if (!progress.isSolved(candidate.slug, level)) return candidate.id to level
             }
         }
         return 0 to 1
@@ -91,6 +117,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         solveRecorded = false
         uiState = snapshot()
         screen = Screen.GAME
+        persistSession()
     }
 
     fun nextLevel() {
@@ -120,18 +147,10 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                 uiState = snapshot().copy(
                     lastPour = PourEvent(selected, index, moved, ++pourCounter),
                 )
-                if (engine.isSolved && !solveRecorded) {
-                    solveRecorded = true
-                    val packId = pack.id
-                    val level = levelNumber
-                    val moves = engine.moveCount
-                    val unlocked = newlyUnlockedPacks(packId, level)
-                    if (unlocked.isNotEmpty()) {
-                        uiState = uiState.copy(newlyUnlockedPacks = unlocked)
-                    }
-                    viewModelScope.launch {
-                        progressRepository.recordSolve(packId, level, moves)
-                    }
+                if (engine.isSolved) {
+                    onSolved()
+                } else {
+                    persistSession()
                 }
             }
             else -> {
@@ -141,28 +160,63 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** Pack names this solve unlocks, empty when replaying a solved level. */
-    private fun newlyUnlockedPacks(packId: Int, level: Int): List<String> {
-        val current = progress.value
-        if (current.isSolved(packId, level)) return emptyList()
-        return Packs.newlyUnlocked(
-            before = { current.solvedInPack(it) },
-            after = { current.solvedInPack(it) + if (it == packId) 1 else 0 },
-        ).map { it.name }
+    private fun onSolved() {
+        if (solveRecorded) return
+        solveRecorded = true
+        val solvedPack = pack
+        val level = levelNumber
+        val moves = engine.moveCount
+        viewModelScope.launch {
+            sessionRepository.clear()
+            // Announcements derive from the write's own before/after
+            // snapshots, so a threshold fires exactly once even across
+            // rapid solves.
+            val result = progressRepository.recordSolve(solvedPack.slug, level, moves)
+            val unlocked = Packs.newlyUnlocked(
+                before = { id -> result.before.solvedInPack(Packs.byId(id).slug) },
+                after = { id -> result.after.solvedInPack(Packs.byId(id).slug) },
+            ).map { it.name }
+            if (unlocked.isNotEmpty() && engine.isSolved) {
+                uiState = uiState.copy(newlyUnlockedPacks = unlocked)
+            }
+        }
     }
 
     fun onUndo() {
-        if (engine.undo()) uiState = snapshot()
+        if (engine.isSolved) return
+        if (engine.undo()) {
+            uiState = snapshot()
+            persistSession()
+        }
     }
 
     fun onRestart() {
         engine.restart()
         solveRecorded = false
         uiState = snapshot()
+        persistSession()
     }
 
     fun onExtraTube() {
-        if (engine.useExtraTube()) uiState = snapshot()
+        if (engine.isSolved) return
+        if (engine.useExtraTube()) {
+            uiState = snapshot()
+            persistSession()
+        }
+    }
+
+    /** Write the live session so process death resumes mid-level. */
+    private fun persistSession() {
+        val session = SavedSession(
+            packSlug = pack.slug,
+            level = levelNumber,
+            tubes = engine.board.encode(),
+            moveCount = engine.moveCount,
+            undosUsed = engine.undosUsed,
+            extraTubesRemaining = engine.extraTubesRemaining,
+            history = engine.historySnapshot(),
+        )
+        viewModelScope.launch { sessionRepository.save(session) }
     }
 
     private fun snapshot() = GameUiState(

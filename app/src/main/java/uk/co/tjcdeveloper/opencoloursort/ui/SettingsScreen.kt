@@ -2,6 +2,8 @@ package uk.co.tjcdeveloper.opencoloursort.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,18 +16,32 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.setProgress
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import uk.co.tjcdeveloper.opencoloursort.data.PaletteMode
 import uk.co.tjcdeveloper.opencoloursort.data.Settings
 import uk.co.tjcdeveloper.opencoloursort.data.ThemeMode
 import uk.co.tjcdeveloper.opencoloursort.ui.theme.Accent
@@ -41,6 +57,8 @@ fun SettingsScreen(
     onThemeChange: (ThemeMode) -> Unit,
     onColorblindChange: (Boolean) -> Unit,
     onHapticsChange: (Boolean) -> Unit,
+    onPaletteChange: (PaletteMode) -> Unit,
+    onTubeRadiusChange: (Int) -> Unit,
     onOpenGitHub: () -> Unit,
 ) {
     val scheme = LocalScheme.current
@@ -55,7 +73,10 @@ fun SettingsScreen(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(
-                modifier = Modifier.size(44.dp).clickable(onClick = onBack),
+                modifier = Modifier
+                    .size(44.dp)
+                    .clickable(onClick = onBack, role = Role.Button)
+                    .semantics { contentDescription = "Back" },
                 contentAlignment = Alignment.Center,
             ) {
                 BasicText("←", style = TextStyle(fontSize = 22.sp, color = scheme.textPrimary))
@@ -67,29 +88,72 @@ fun SettingsScreen(
         }
 
         SettingsSection("APPEARANCE") {
-            Column(Modifier.padding(16.dp)) {
-                BasicText(
-                    "Theme",
-                    style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = scheme.textPrimary),
-                )
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 12.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(scheme.raised)
-                        .padding(4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    ThemeSegment("Light", settings.theme == ThemeMode.LIGHT, Modifier.weight(1f)) {
-                        onThemeChange(ThemeMode.LIGHT)
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Column {
+                    BasicText(
+                        "Theme",
+                        style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = scheme.textPrimary),
+                    )
+                    SegmentedRow {
+                        Segment("Light", settings.theme == ThemeMode.LIGHT, Modifier.weight(1f)) {
+                            onThemeChange(ThemeMode.LIGHT)
+                        }
+                        Segment("Dark", settings.theme == ThemeMode.DARK, Modifier.weight(1f)) {
+                            onThemeChange(ThemeMode.DARK)
+                        }
+                        Segment("System", settings.theme == ThemeMode.SYSTEM, Modifier.weight(1f)) {
+                            onThemeChange(ThemeMode.SYSTEM)
+                        }
                     }
-                    ThemeSegment("Dark", settings.theme == ThemeMode.DARK, Modifier.weight(1f)) {
-                        onThemeChange(ThemeMode.DARK)
+                }
+                Box(Modifier.fillMaxWidth().height(1.dp).background(scheme.raised))
+                Column {
+                    BasicText(
+                        "Palette",
+                        style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = scheme.textPrimary),
+                    )
+                    BasicText(
+                        "Colour intensity of the liquids",
+                        modifier = Modifier.padding(top = 2.dp),
+                        style = TextStyle(fontSize = 13.sp, color = scheme.textMuted),
+                    )
+                    SegmentedRow {
+                        Segment("Vivid", settings.palette == PaletteMode.VIVID, Modifier.weight(1f)) {
+                            onPaletteChange(PaletteMode.VIVID)
+                        }
+                        Segment("Soft", settings.palette == PaletteMode.SOFT, Modifier.weight(1f)) {
+                            onPaletteChange(PaletteMode.SOFT)
+                        }
                     }
-                    ThemeSegment("System", settings.theme == ThemeMode.SYSTEM, Modifier.weight(1f)) {
-                        onThemeChange(ThemeMode.SYSTEM)
+                }
+                Box(Modifier.fillMaxWidth().height(1.dp).background(scheme.raised))
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        BasicText(
+                            "Tube bottom radius",
+                            style = TextStyle(
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = scheme.textPrimary,
+                            ),
+                        )
+                        BasicText(
+                            "${settings.tubeBottomRadius}dp",
+                            style = TextStyle(fontSize = 14.sp, color = scheme.textMuted),
+                        )
                     }
+                    BasicText(
+                        "How rounded the tubes are",
+                        modifier = Modifier.padding(top = 2.dp),
+                        style = TextStyle(fontSize = 13.sp, color = scheme.textMuted),
+                    )
+                    RadiusSlider(
+                        value = settings.tubeBottomRadius,
+                        onChange = onTubeRadiusChange,
+                    )
                 }
             }
         }
@@ -124,7 +188,9 @@ fun SettingsScreen(
                 )
                 BasicText(
                     "View source on GitHub →",
-                    modifier = Modifier.padding(top = 6.dp).clickable(onClick = onOpenGitHub),
+                    modifier = Modifier
+                        .padding(top = 6.dp)
+                        .clickable(onClick = onOpenGitHub, role = Role.Button),
                     style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Accent.link),
                 )
             }
@@ -158,14 +224,29 @@ private fun SettingsSection(label: String, content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun ThemeSegment(label: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+private fun SegmentedRow(content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit) {
+    val scheme = LocalScheme.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 12.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(scheme.raised)
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        content = content,
+    )
+}
+
+@Composable
+private fun Segment(label: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val scheme = LocalScheme.current
     Box(
         modifier = modifier
             .height(40.dp)
             .clip(RoundedCornerShape(6.dp))
             .background(if (selected) Accent.primary else scheme.raised)
-            .clickable(onClick = onClick),
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         BasicText(
@@ -183,7 +264,10 @@ private fun ThemeSegment(label: String, selected: Boolean, modifier: Modifier = 
 private fun ToggleRow(title: String, subtitle: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     val scheme = LocalScheme.current
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        // The whole row toggles, giving a large target and Switch semantics.
+        modifier = Modifier
+            .fillMaxWidth()
+            .toggleable(value = checked, role = Role.Switch, onValueChange = onChange),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -205,7 +289,6 @@ private fun ToggleRow(title: String, subtitle: String, checked: Boolean, onChang
                 .height(32.dp)
                 .clip(RoundedCornerShape(99.dp))
                 .background(if (checked) Accent.primary else scheme.raised)
-                .clickable { onChange(!checked) }
                 .padding(3.dp),
             contentAlignment = if (checked) Alignment.CenterEnd else Alignment.CenterStart,
         ) {
@@ -215,6 +298,68 @@ private fun ToggleRow(title: String, subtitle: String, checked: Boolean, onChang
                     .clip(CircleShape)
                     .background(if (checked) Accent.onPrimary else scheme.textMuted),
             )
+        }
+    }
+}
+
+/**
+ * Drag/tap slider for the tube bottom radius, styled like the pack progress
+ * bars (no Material). Values snap to whole dp inside the handoff's 4-28
+ * range.
+ */
+@Composable
+private fun RadiusSlider(value: Int, onChange: (Int) -> Unit) {
+    val scheme = LocalScheme.current
+    var trackWidthPx by remember { mutableIntStateOf(1) }
+    val range = Settings.MAX_TUBE_RADIUS - Settings.MIN_TUBE_RADIUS
+    fun valueAt(x: Float): Int =
+        (Settings.MIN_TUBE_RADIUS + (x / trackWidthPx) * range).toInt()
+            .coerceIn(Settings.MIN_TUBE_RADIUS, Settings.MAX_TUBE_RADIUS)
+
+    val fraction = (value - Settings.MIN_TUBE_RADIUS).toFloat() / range
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(48.dp)
+            .onSizeChanged { trackWidthPx = it.width.coerceAtLeast(1) }
+            .pointerInput(Unit) { detectTapGestures { offset -> onChange(valueAt(offset.x)) } }
+            .pointerInput(Unit) {
+                detectHorizontalDragGestures { change, _ -> onChange(valueAt(change.position.x)) }
+            }
+            .semantics {
+                contentDescription = "Tube bottom radius"
+                stateDescription = "$value dp"
+                setProgress { target ->
+                    onChange(target.toInt().coerceIn(Settings.MIN_TUBE_RADIUS, Settings.MAX_TUBE_RADIUS))
+                    true
+                }
+            },
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(6.dp)
+                .clip(RoundedCornerShape(99.dp))
+                .background(scheme.chip),
+        )
+        Box(
+            Modifier
+                .fillMaxWidth(fraction)
+                .height(6.dp)
+                .clip(RoundedCornerShape(99.dp))
+                .background(Accent.primary),
+        )
+        // Knob: positioned by fraction of the available width.
+        Row(Modifier.fillMaxWidth()) {
+            if (fraction > 0f) Box(Modifier.weight(fraction.coerceAtLeast(0.0001f)))
+            Box(
+                Modifier
+                    .size(22.dp)
+                    .clip(CircleShape)
+                    .background(Accent.onPrimary)
+            )
+            if (fraction < 1f) Box(Modifier.weight((1f - fraction).coerceAtLeast(0.0001f)))
         }
     }
 }

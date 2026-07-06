@@ -26,6 +26,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -114,7 +117,8 @@ private fun CoverGameScreen(
                 modifier = Modifier
                     .width(44.dp)
                     .height(44.dp)
-                    .clickable(onClick = onOverflowMenu),
+                    .clickable(onClick = onOverflowMenu, role = Role.Button)
+                    .semantics { contentDescription = "Menu" },
                 contentAlignment = Alignment.Center,
             ) {
                 BasicText(
@@ -127,7 +131,10 @@ private fun CoverGameScreen(
             modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            StatChip("LEVEL", state.levelLabel, Modifier.weight(1f), onClick = onOpenLevels)
+            StatChip(
+                "LEVEL", state.levelLabel, Modifier.weight(1f),
+                onClickLabel = "open level map", onClick = onOpenLevels,
+            )
             StatChip("MOVES", state.moveCount.toString(), Modifier.weight(1f))
         }
         Row(
@@ -139,12 +146,14 @@ private fun CoverGameScreen(
             Spacer(Modifier.weight(1f))
             ActionButton(
                 icon = ::extraTubeIcon,
+                label = "Add extra vial",
                 count = state.extraTubesRemaining,
                 enabled = state.extraTubesRemaining > 0,
                 onClick = onExtraTube,
             )
             ActionButton(
                 icon = ::undoIcon,
+                label = "Undo",
                 count = state.undosRemaining,
                 enabled = state.canUndo,
                 onClick = onUndo,
@@ -269,12 +278,16 @@ private fun UnfoldedGameScreen(
                     )
                 }
             }
-            StatChip("LEVEL", state.levelLabel, Modifier.fillMaxWidth(), onClick = onOpenLevels)
+            StatChip(
+                "LEVEL", state.levelLabel, Modifier.fillMaxWidth(),
+                onClickLabel = "open level map", onClick = onOpenLevels,
+            )
             StatChip("MOVES", state.moveCount.toString(), Modifier.fillMaxWidth())
             PrimaryButton("Restart", onRestart, Modifier.fillMaxWidth(), height = 48)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ActionButton(
                     icon = ::extraTubeIcon,
+                    label = "Add extra vial",
                     count = state.extraTubesRemaining,
                     enabled = state.extraTubesRemaining > 0,
                     onClick = onExtraTube,
@@ -282,6 +295,7 @@ private fun UnfoldedGameScreen(
                 )
                 ActionButton(
                     icon = ::undoIcon,
+                    label = "Undo",
                     count = state.undosRemaining,
                     enabled = state.canUndo,
                     onClick = onUndo,
@@ -340,6 +354,12 @@ private fun BoardFlow(
         verticalArrangement = Arrangement.spacedBy(gap),
     ) {
         state.board.tubes.forEachIndexed { index, tube ->
+            val spoken = if (tube.isEmpty()) {
+                "Tube ${index + 1}, empty"
+            } else {
+                val top = tube.last().name.lowercase().replace('_', ' ')
+                "Tube ${index + 1}, ${tube.size} of ${state.board.capacity}, $top on top"
+            }
             Tube(
                 segments = tube,
                 spec = spec,
@@ -348,6 +368,7 @@ private fun BoardFlow(
                 showSymbols = settings.colorblindSymbols,
                 selected = state.selectedTube == index,
                 onTap = { onTubeTapped(index) },
+                contentDescription = spoken,
             )
         }
     }

@@ -22,6 +22,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -66,7 +69,10 @@ fun LevelSelectScreen(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(
-                modifier = Modifier.size(44.dp).clickable(onClick = onBack),
+                modifier = Modifier
+                    .size(44.dp)
+                    .clickable(onClick = onBack, role = Role.Button)
+                    .semantics { contentDescription = "Back" },
                 contentAlignment = Alignment.Center,
             ) {
                 BasicText("←", style = TextStyle(fontSize = 22.sp, color = scheme.textPrimary))
@@ -89,7 +95,10 @@ fun LevelSelectScreen(
         ) {
             if (packCount > 1) {
                 Box(
-                    modifier = Modifier.size(32.dp).clickable { onSwitchPack(-1) },
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clickable(onClick = { onSwitchPack(-1) }, role = Role.Button)
+                        .semantics { contentDescription = "Previous pack" },
                     contentAlignment = Alignment.Center,
                 ) {
                     BasicText("‹", style = TextStyle(fontSize = 22.sp, color = scheme.textMuted))
@@ -112,7 +121,10 @@ fun LevelSelectScreen(
             )
             if (packCount > 1) {
                 Box(
-                    modifier = Modifier.size(32.dp).clickable { onSwitchPack(1) },
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clickable(onClick = { onSwitchPack(1) }, role = Role.Button)
+                        .semantics { contentDescription = "Next pack" },
                     contentAlignment = Alignment.Center,
                 ) {
                     BasicText("›", style = TextStyle(fontSize = 22.sp, color = scheme.textMuted))
@@ -164,16 +176,22 @@ fun LevelSelectScreen(
 private fun LevelChipView(level: LevelChip, onTap: () -> Unit) {
     val scheme = LocalScheme.current
     val shape = RoundedCornerShape(8.dp)
+    val spokenState = when (level.state) {
+        LevelChipState.SOLVED -> "solved"
+        LevelChipState.CURRENT -> "ready to play"
+        LevelChipState.LOCKED -> "locked"
+    }
     val base = Modifier
         .height(72.dp)
         .clip(shape)
+        .semantics { contentDescription = "Level ${level.number}, $spokenState" }
     val decorated = when (level.state) {
         LevelChipState.SOLVED -> base
             .background(scheme.chip)
-            .clickable(onClick = onTap)
+            .clickable(onClick = onTap, role = Role.Button)
         LevelChipState.CURRENT -> base
             .background(Accent.primary)
-            .clickable(onClick = onTap)
+            .clickable(onClick = onTap, role = Role.Button)
         LevelChipState.LOCKED -> {
             val dash = scheme.border
             base.drawBehind {

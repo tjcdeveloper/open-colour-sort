@@ -2,6 +2,7 @@ package uk.co.tjcdeveloper.opencoloursort.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -29,6 +31,13 @@ import uk.co.tjcdeveloper.opencoloursort.ui.components.PrimaryButton
 import uk.co.tjcdeveloper.opencoloursort.ui.components.SecondaryButton
 import uk.co.tjcdeveloper.opencoloursort.ui.theme.Accent
 import uk.co.tjcdeveloper.opencoloursort.ui.theme.LocalScheme
+
+/**
+ * Scrim behaviour for dialog overlays: being hit-testable everywhere keeps
+ * taps in the dimmed area from reaching the controls behind the dialog.
+ */
+private fun Modifier.consumeAllTaps(): Modifier =
+    pointerInput(Unit) { detectTapGestures { } }
 
 /**
  * Level-complete dialog (handoff 1f): centered card over the dimmed board,
@@ -47,6 +56,7 @@ fun WinDialog(
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .consumeAllTaps()
             .padding(32.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -167,6 +177,7 @@ fun StalemateDialog(
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .consumeAllTaps()
             .padding(32.dp),
         contentAlignment = Alignment.Center,
     ) {

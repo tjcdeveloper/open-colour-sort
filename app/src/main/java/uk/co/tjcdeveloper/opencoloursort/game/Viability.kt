@@ -33,14 +33,14 @@ object Viability {
         val firstDepth = HashMap<String, Int>()
         val solvedKeys = ArrayList<String>()
         var frontier = listOf(board)
-        firstDepth[canonical(board)] = 0
+        firstDepth[board.canonicalKey()] = 0
         var depth = 0
         while (frontier.isNotEmpty()) {
             if (firstDepth.size > maxStates) return null
             depth++
             val next = ArrayList<Board>()
             for (current in frontier) {
-                val key = canonical(current)
+                val key = current.canonicalKey()
                 if (current.isSolved) {
                     solvedKeys.add(key)
                     successors[key] = emptyList()
@@ -50,7 +50,7 @@ object Viability {
                 for (from in current.tubes.indices) {
                     for (to in current.tubes.indices) {
                         val poured = current.pour(from, to)?.board ?: continue
-                        distinct[canonical(poured)] = poured
+                        distinct[poured.canonicalKey()] = poured
                     }
                 }
                 successors[key] = distinct.keys.toList()
@@ -82,9 +82,4 @@ object Viability {
         }
         return Stats(firstDepth.size, firstDepth.size - viable.size, earlyDepths)
     }
-
-    private fun canonical(board: Board): String =
-        board.tubes.map { tube -> String(tube.map { it.key }.toCharArray()) }
-            .sorted()
-            .joinToString("|")
 }

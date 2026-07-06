@@ -24,7 +24,12 @@ object PackPlan {
 
     data class Segment(val count: Int, val spec: LevelGenerator.Spec)
 
-    data class ClassicPack(val name: String, val segments: List<Segment>) {
+    data class ClassicPack(
+        /** Stable identifier used in progress keys - never rename or reuse. */
+        val slug: String,
+        val name: String,
+        val segments: List<Segment>,
+    ) {
         val levelCount: Int get() = segments.sumOf { it.count }
     }
 
@@ -42,6 +47,7 @@ object PackPlan {
     /** Packs 1-10, in play order. Each is 40 levels. */
     val classicPacks: List<ClassicPack> = listOf(
         ClassicPack(
+            "beginner",
             "Beginner",
             listOf(
                 segment(3, 3, 2, 4..7, 0.0..1.0),
@@ -55,6 +61,7 @@ object PackPlan {
             ),
         ),
         ClassicPack(
+            "easy-1",
             "Easy 1",
             listOf(
                 segment(8, 6, 2, 15..19, 3.0..6.0),
@@ -64,6 +71,7 @@ object PackPlan {
             ),
         ),
         ClassicPack(
+            "easy-2",
             "Easy 2",
             listOf(
                 segment(10, 7, 2, 19..23, 6.0..9.0),
@@ -73,6 +81,7 @@ object PackPlan {
             ),
         ),
         ClassicPack(
+            "intermediate-1",
             "Intermediate 1",
             listOf(
                 segment(10, 8, 2, 23..27, 8.0..11.0),
@@ -82,6 +91,7 @@ object PackPlan {
             ),
         ),
         ClassicPack(
+            "intermediate-2",
             "Intermediate 2",
             listOf(
                 segment(10, 8, 2, 24..28, 14.0..17.0),
@@ -91,6 +101,7 @@ object PackPlan {
             ),
         ),
         ClassicPack(
+            "hard-1",
             "Hard 1",
             listOf(
                 segment(10, 9, 2, 26..31, 17.0..20.0),
@@ -100,6 +111,7 @@ object PackPlan {
             ),
         ),
         ClassicPack(
+            "hard-2",
             "Hard 2",
             listOf(
                 segment(10, 10, 2, 29..34, 19.0..23.0),
@@ -109,6 +121,7 @@ object PackPlan {
             ),
         ),
         ClassicPack(
+            "hard-3",
             "Hard 3",
             listOf(
                 segment(8, 10, 2, 30..35, 24.0..28.0),
@@ -120,6 +133,7 @@ object PackPlan {
             ),
         ),
         ClassicPack(
+            "extreme-1",
             "Extreme 1",
             listOf(
                 segment(10, 12, 2, 34..42, 24.0..30.0),
@@ -130,6 +144,7 @@ object PackPlan {
             ),
         ),
         ClassicPack(
+            "extreme-2",
             "Extreme 2",
             listOf(
                 segment(10, 12, 2, 35..44, 34.0..40.0),

@@ -17,15 +17,6 @@ object Solver {
     )
 
     /**
-     * Canonical key: tube order is irrelevant to solvability, so tubes are
-     * sorted. Each tube is its colour keys bottom -> top.
-     */
-    private fun canonical(tubes: List<List<GameColour>>): String =
-        tubes.map { tube -> String(tube.map { it.key }.toCharArray()) }
-            .sorted()
-            .joinToString("|")
-
-    /**
      * Admissible heuristic: every pour reduces the total number of
      * same-colour runs by at most one, and a solved board has exactly one
      * run per colour. So (runs - colours) is a lower bound on moves left.
@@ -74,7 +65,7 @@ object Solver {
 
         val open = PriorityQueue<Node>(compareBy { it.f })
         val bestG = HashMap<String, Int>()
-        val startKey = canonical(board.tubes)
+        val startKey = board.canonicalKey()
         open.add(Node(board, 0, heuristic(board.tubes)))
         bestG[startKey] = 0
         var expanded = 0
@@ -87,12 +78,12 @@ object Solver {
             if (++expanded > maxStates) {
                 return Result(solvable = false, minMoves = null, truncated = true)
             }
-            val key = canonical(node.board.tubes)
+            val key = node.board.canonicalKey()
             if (node.g > (bestG[key] ?: Int.MAX_VALUE)) continue
 
             for ((from, to) in legalMoves(node.board)) {
                 val next = node.board.pour(from, to)?.board ?: continue
-                val nextKey = canonical(next.tubes)
+                val nextKey = next.canonicalKey()
                 val g = node.g + 1
                 if (g < (bestG[nextKey] ?: Int.MAX_VALUE)) {
                     bestG[nextKey] = g
@@ -108,14 +99,14 @@ object Solver {
         val visited = HashSet<String>()
         val stack = ArrayDeque<Board>()
         stack.addLast(board)
-        visited.add(canonical(board.tubes))
+        visited.add(board.canonicalKey())
         while (stack.isNotEmpty()) {
             if (visited.size > maxStates) return false
             val current = stack.removeLast()
             if (current.isSolved) return true
             for ((from, to) in legalMoves(current)) {
                 val next = current.pour(from, to)?.board ?: continue
-                if (visited.add(canonical(next.tubes))) {
+                if (visited.add(next.canonicalKey())) {
                     stack.addLast(next)
                 }
             }

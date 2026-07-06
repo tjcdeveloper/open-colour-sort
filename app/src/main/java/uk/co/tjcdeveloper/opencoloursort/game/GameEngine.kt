@@ -65,20 +65,17 @@ class GameEngine(
         return true
     }
 
-    /** Any legal pour available (including into empty tubes)? */
-    fun hasAnyMove(): Boolean {
-        for (from in board.tubes.indices) {
-            for (to in board.tubes.indices) {
-                if (board.canPour(from, to)) return true
-            }
-        }
-        return false
-    }
-
     /**
      * Stalemate: the level is unsolved and no legal pour can move a complete
      * colour run (any pour would only split one). The extra tube or an undo
      * may still rescue the game; callers offer whichever escapes remain.
+     *
+     * Invariant (why this never fires on a winnable board): a partial pour
+     * needs a target holding capacity-f segments of a colour and a source
+     * run r > f, totalling more than [Board.capacity] of that colour - but a
+     * well-formed board has exactly capacity of each, and empty tubes always
+     * fit a whole run. So on shipped levels every legal pour moves its full
+     * run, and isStuck is true exactly when no legal pour exists at all.
      */
     val isStuck: Boolean
         get() = !isSolved && board.tubes.indices.none { from -> hasFullRunPour(from) }
@@ -91,11 +88,37 @@ class GameEngine(
         }
     }
 
+    /** The undo history, oldest first, for session persistence. */
+    fun historySnapshot(): List<Move> = history.toList()
+
     fun restart() {
         board = initial
         moveCount = 0
         undosUsed = 0
         extraTubesRemaining = extraTubesAllowed
         history.clear()
+    }
+
+    companion object {
+        /**
+         * Rebuild a mid-level session from persisted state. [initialBoard]
+         * stays the level's pristine board so restart still works.
+         */
+        fun restore(
+            initialBoard: Board,
+            currentBoard: Board,
+            moveCount: Int,
+            undosUsed: Int,
+            extraTubesRemaining: Int,
+            history: List<Move>,
+        ): GameEngine {
+            val engine = GameEngine(initialBoard)
+            engine.board = currentBoard
+            engine.moveCount = moveCount
+            engine.undosUsed = undosUsed
+            engine.extraTubesRemaining = extraTubesRemaining
+            engine.history.addAll(history)
+            return engine
+        }
     }
 }

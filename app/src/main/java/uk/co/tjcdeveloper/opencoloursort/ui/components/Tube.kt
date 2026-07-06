@@ -22,6 +22,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -63,6 +67,7 @@ fun Tube(
     selected: Boolean,
     onTap: () -> Unit,
     modifier: Modifier = Modifier,
+    contentDescription: String? = null,
 ) {
     val scheme = LocalScheme.current
     val lift by animateDpAsState(
@@ -84,8 +89,13 @@ fun Tube(
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
+                role = Role.Button,
                 onClick = onTap,
-            ),
+            )
+            .semantics {
+                contentDescription?.let { this.contentDescription = it }
+                if (selected) stateDescription = "selected"
+            },
         verticalArrangement = Arrangement.Bottom,
     ) {
         // Liquid level changes animate as the stack grows/shrinks (~300ms,

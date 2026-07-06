@@ -10,6 +10,10 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import uk.co.tjcdeveloper.opencoloursort.data.DataStoreProgressRepository
+import uk.co.tjcdeveloper.opencoloursort.data.DataStoreSessionRepository
 import uk.co.tjcdeveloper.opencoloursort.data.Settings
 import uk.co.tjcdeveloper.opencoloursort.data.SettingsRepository
 import uk.co.tjcdeveloper.opencoloursort.data.ThemeMode
@@ -21,7 +25,16 @@ import uk.co.tjcdeveloper.opencoloursort.ui.theme.LocalScheme
 
 class MainActivity : ComponentActivity() {
 
-    private val gameViewModel: GameViewModel by viewModels()
+    private val gameViewModel: GameViewModel by viewModels {
+        viewModelFactory {
+            initializer {
+                GameViewModel(
+                    progressRepository = DataStoreProgressRepository(applicationContext),
+                    sessionRepository = DataStoreSessionRepository(applicationContext),
+                )
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

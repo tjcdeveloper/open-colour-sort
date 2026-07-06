@@ -77,6 +77,21 @@ data class Board(
     /** Board with one extra empty tube appended (the extra-tube power-up). */
     fun withExtraTube(): Board = copy(tubes = tubes + listOf(emptyList()))
 
+    /** The handoff string encoding: one string per tube, bottom -> top. */
+    fun encode(): List<String> =
+        tubes.map { tube -> String(tube.map { it.key }.toCharArray()) }
+
+    /**
+     * Canonical state key: tube order is irrelevant to play, so tubes are
+     * sorted. The single source of truth for state dedup - the solver and
+     * the viability analysis must share this exact form, or level analysis
+     * silently diverges between them.
+     */
+    fun canonicalKey(): String =
+        tubes.map { tube -> String(tube.map { it.key }.toCharArray()) }
+            .sorted()
+            .joinToString("|")
+
     companion object {
         /**
          * Parse the handoff's encoding: one string per tube, each character a

@@ -10,6 +10,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -43,7 +46,7 @@ fun PrimaryButton(
             .height(height.dp)
             .clip(RoundedCornerShape(6.dp))
             .background(Accent.primary)
-            .clickable(onClick = onClick)
+            .clickable(onClick = onClick, role = Role.Button)
             .padding(horizontal = 20.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -72,7 +75,7 @@ fun SecondaryButton(
             .height(height.dp)
             .clip(RoundedCornerShape(6.dp))
             .background(if (scheme.isDark) scheme.border else scheme.borderSoft)
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick, role = Role.Button),
         contentAlignment = Alignment.Center,
     ) {
         BasicText(
@@ -94,6 +97,7 @@ fun SecondaryButton(
 @Composable
 fun ActionButton(
     icon: (Color) -> ImageVector,
+    label: String,
     count: Int,
     enabled: Boolean,
     onClick: () -> Unit,
@@ -108,7 +112,8 @@ fun ActionButton(
             .height(height.dp)
             .clip(RoundedCornerShape(6.dp))
             .background(bg)
-            .clickable(enabled = enabled, onClick = onClick)
+            .clickable(enabled = enabled, onClick = onClick, role = Role.Button)
+            .semantics { contentDescription = "$label, $count remaining" }
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
@@ -179,10 +184,15 @@ fun StatChip(
     label: String,
     value: String,
     modifier: Modifier = Modifier,
+    onClickLabel: String? = null,
     onClick: (() -> Unit)? = null,
 ) {
     val scheme = LocalScheme.current
-    val tappable = if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
+    val tappable = if (onClick != null) {
+        Modifier.clickable(onClick = onClick, onClickLabel = onClickLabel, role = Role.Button)
+    } else {
+        Modifier
+    }
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(6.dp))

@@ -3,11 +3,14 @@ package uk.co.tjcdeveloper.opencoloursort.data
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
+import java.io.IOException
 
 private val Context.settingsStore by preferencesDataStore(name = "settings")
 
@@ -21,7 +24,10 @@ class SettingsRepository(private val context: Context) {
         val tubeBottomRadius = intPreferencesKey("tube_bottom_radius")
     }
 
-    val settings: Flow<Settings> = context.settingsStore.data.map { prefs ->
+    val settings: Flow<Settings> = context.settingsStore.data
+        // A corrupted store falls back to defaults instead of crashing.
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { prefs ->
         Settings(
             theme = prefs[Keys.theme]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() }
                 ?: ThemeMode.SYSTEM,

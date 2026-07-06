@@ -2,7 +2,6 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -13,8 +12,9 @@ android {
         applicationId = "uk.co.tjcdeveloper.opencoloursort"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.3"
+        // versionCode must increase on EVERY release or updates are rejected.
+        versionCode = 2
+        versionName = "0.1.4"
 
         // Testing helper: unlocks every level. false here and in release so it
         // can only ever be true in local debug builds.
@@ -49,8 +49,10 @@ android {
         unitTests.all {
             // Forward the BakeLevelsTool codegen flag to the test JVM.
             it.systemProperty("bakeLevels", providers.gradleProperty("bakeLevels").getOrElse("false"))
-            // The analysis tools hold large search frontiers in memory.
-            it.maxHeapSize = "4g"
+            // Only the gated analysis tools hold large search frontiers.
+            if (providers.gradleProperty("bakeLevels").getOrElse("false") == "true") {
+                it.maxHeapSize = "4g"
+            }
             it.testLogging { showStandardStreams = true }
         }
     }
@@ -67,7 +69,6 @@ dependencies {
     implementation(libs.androidx.foundation)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.datastore.preferences)
-    implementation(libs.kotlinx.serialization.json)
     debugImplementation(libs.androidx.ui.tooling)
 
     testImplementation(libs.junit)

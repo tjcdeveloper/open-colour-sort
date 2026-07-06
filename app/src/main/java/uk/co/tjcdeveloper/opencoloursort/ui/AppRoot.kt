@@ -68,7 +68,7 @@ fun AppRoot(
                     state = state,
                     settings = settings,
                     packLabel = pack.name,
-                    packSolved = progress.solvedInPack(pack.id),
+                    packSolved = progress.solvedInPack(pack.slug),
                     packTotal = pack.levels.size,
                     onTubeTapped = viewModel::onTubeTapped,
                     onRestart = viewModel::onRestart,
@@ -134,14 +134,14 @@ fun AppRoot(
             // Debug-build testing aid: every pack and level is playable.
             val unlockAll = BuildConfig.UNLOCK_ALL_LEVELS
             val unlocked = unlockAll ||
-                Packs.isUnlocked(pack) { progress.solvedInPack(it) }
+                Packs.isUnlocked(pack) { progress.solvedInPack(Packs.byId(it).slug) }
             val firstUnsolved = (1..pack.levels.size)
-                .firstOrNull { !progress.isSolved(pack.id, it) }
+                .firstOrNull { !progress.isSolved(pack.slug, it) }
             val chips = (1..pack.levels.size).map { n ->
                 LevelChip(
                     number = n,
                     state = when {
-                        progress.isSolved(pack.id, n) -> LevelChipState.SOLVED
+                        progress.isSolved(pack.slug, n) -> LevelChipState.SOLVED
                         unlocked && (unlockAll || n == firstUnsolved) -> LevelChipState.CURRENT
                         else -> LevelChipState.LOCKED
                     },
@@ -149,7 +149,7 @@ fun AppRoot(
             }
             LevelSelectScreen(
                 packName = pack.name + if (unlocked) "" else " (locked)",
-                solvedCount = progress.solvedInPack(pack.id),
+                solvedCount = progress.solvedInPack(pack.slug),
                 totalCount = pack.levels.size,
                 levels = chips,
                 onBack = { viewModel.screen = Screen.GAME },
@@ -172,6 +172,8 @@ fun AppRoot(
             onThemeChange = { scope.launch { settingsRepository.setTheme(it) } },
             onColorblindChange = { scope.launch { settingsRepository.setColorblindSymbols(it) } },
             onHapticsChange = { scope.launch { settingsRepository.setHaptics(it) } },
+            onPaletteChange = { scope.launch { settingsRepository.setPalette(it) } },
+            onTubeRadiusChange = { scope.launch { settingsRepository.setTubeBottomRadius(it) } },
             onOpenGitHub = {
                 context.startActivity(Intent(Intent.ACTION_VIEW, GITHUB_URL.toUri()))
             },
