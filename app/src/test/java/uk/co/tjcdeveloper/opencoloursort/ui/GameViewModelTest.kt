@@ -123,7 +123,8 @@ class GameViewModelTest {
         }
         val (from, to, poured) = pour!!
         val saved = SavedSession(
-            packSlug = "beginner", level = 5, tubes = poured.encode(),
+            packSlug = "beginner", level = 5,
+            initialTubes = GeneratedLevels.classic[0][4], tubes = poured.encode(),
             moveCount = 1, undosUsed = 0, extraTubesRemaining = 1,
             history = listOf(Move(from, to, poured.tubes[to].size - start.tubes[to].size)),
         )
@@ -133,6 +134,21 @@ class GameViewModelTest {
         assertEquals(1, viewModel.uiState.moveCount)
         assertTrue(viewModel.uiState.canUndo)
         assertEquals(poured, viewModel.uiState.board)
+    }
+
+    @Test
+    fun `a session from a rebaked level set is discarded`() = runTest(dispatcher.scheduler) {
+        val saved = SavedSession(
+            packSlug = "beginner", level = 5,
+            initialTubes = listOf("rrrr", "yyyy", ""), // no longer matches the shipped level
+            tubes = listOf("rrr", "yyyy", "r"),
+            moveCount = 1, undosUsed = 0, extraTubesRemaining = 1, history = emptyList(),
+        )
+        val viewModel = GameViewModel(FakeProgressRepository(), FakeSessionRepository(saved))
+        dispatcher.scheduler.advanceUntilIdle()
+        // Falls back to first-unsolved resume instead of the stale board.
+        assertEquals(1, viewModel.uiState.levelNumber)
+        assertEquals(0, viewModel.uiState.moveCount)
     }
 
     @Test

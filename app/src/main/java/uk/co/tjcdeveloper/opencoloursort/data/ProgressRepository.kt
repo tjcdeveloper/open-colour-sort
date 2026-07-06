@@ -44,7 +44,7 @@ data class SolveResult(val before: Progress, val after: Progress)
  * positions at v1 (frozen history - do not update this list when packs
  * change; bump the schema instead) and stamps the schema version.
  */
-private object PositionalKeyMigration : DataMigration<Preferences> {
+internal object PositionalKeyMigration : DataMigration<Preferences> {
     val schemaKey: Preferences.Key<Int> = intPreferencesKey("schema_version")
     private const val CURRENT_SCHEMA = 2
     private val legacyKey = Regex("""p(\d+)_l(\d+)""")
@@ -62,8 +62,10 @@ private object PositionalKeyMigration : DataMigration<Preferences> {
             val match = legacyKey.matchEntire(key.name) ?: continue
             val moves = value as? Int ?: continue
             updated.remove(key)
-            val slug = v1PackSlugs.getOrNull(match.groupValues[1].toInt()) ?: continue
-            val level = match.groupValues[2].toInt()
+            // toIntOrNull: a hand-mangled key must never crash the migration.
+            val packIndex = match.groupValues[1].toIntOrNull() ?: continue
+            val level = match.groupValues[2].toIntOrNull() ?: continue
+            val slug = v1PackSlugs.getOrNull(packIndex) ?: continue
             updated[intPreferencesKey(Progress.key(slug, level))] = moves
         }
         updated[schemaKey] = CURRENT_SCHEMA

@@ -22,6 +22,8 @@ private val Context.sessionStore by preferencesDataStore(name = "session")
 data class SavedSession(
     val packSlug: String,
     val level: Int,
+    /** The level's pristine encoding; a rebaked level invalidates the session. */
+    val initialTubes: List<String>,
     val tubes: List<String>,
     val moveCount: Int,
     val undosUsed: Int,
@@ -40,6 +42,7 @@ class DataStoreSessionRepository(private val context: Context) : SessionReposito
     private object Keys {
         val packSlug = stringPreferencesKey("pack_slug")
         val level = intPreferencesKey("level")
+        val initialTubes = stringPreferencesKey("initial_tubes")
         val tubes = stringPreferencesKey("tubes")
         val moveCount = intPreferencesKey("move_count")
         val undosUsed = intPreferencesKey("undos_used")
@@ -54,14 +57,16 @@ class DataStoreSessionRepository(private val context: Context) : SessionReposito
             val packSlug = prefs[Keys.packSlug] ?: return@map null
             val level = prefs[Keys.level] ?: return@map null
             val tubes = prefs[Keys.tubes]?.split('|') ?: return@map null
+            val initialTubes = prefs[Keys.initialTubes]?.split('|') ?: return@map null
             SavedSession(
                 packSlug = packSlug,
                 level = level,
+                initialTubes = initialTubes,
                 tubes = tubes,
                 moveCount = prefs[Keys.moveCount] ?: 0,
                 undosUsed = prefs[Keys.undosUsed] ?: 0,
                 extraTubesRemaining = prefs[Keys.extraTubesRemaining] ?: 0,
-                history = decodeHistory(prefs[Keys.history].orEmpty()),
+                history = SessionCodec.decodeHistory(prefs[Keys.history].orEmpty()),
             )
         }
 
@@ -69,23 +74,33 @@ class DataStoreSessionRepository(private val context: Context) : SessionReposito
         context.sessionStore.edit { prefs ->
             prefs[Keys.packSlug] = session.packSlug
             prefs[Keys.level] = session.level
+            prefs[Keys.initialTubes] = session.initialTubes.joinToString("|")
             prefs[Keys.tubes] = session.tubes.joinToString("|")
             prefs[Keys.moveCount] = session.moveCount
             prefs[Keys.undosUsed] = session.undosUsed
             prefs[Keys.extraTubesRemaining] = session.extraTubesRemaining
-            prefs[Keys.history] = session.history
-                .joinToString(",") { "${it.from}>${it.to}:${it.moved}" }
+            prefs[Keys.history] = SessionCodec.encodeHistory(session.history)
         }
     }
 
     override suspend fun clear() {
         context.sessionStore.edit { it.clear() }
     }
+}
 
-    private fun decodeHistory(encoded: String): List<Move> =
-        encoded.split(',').filter { it.isNotEmpty() }.mapNotNull { entry ->
-            val match = Regex("""(\d+)>(\d+):(\d+)""").matchEntire(entry) ?: return@mapNotNull null
+/** Undo-history wire format: "from>to:moved" entries, comma separated. */
+internal object SessionCodec {
+    private val entry = Regex("""(\d+)>(\d+):(\d+)""")
+
+    fun encodeHistory(history: List<Move>): String =
+        history.joinToString(",") { "${it.from}>${it.to}:${it.moved}" }
+
+    fun decodeHistory(encoded: String): List<Move> =
+        encoded.split(',').filter { it.isNotEmpty() }.mapNotNull { text ->
+            val match = entry.matchEntire(text) ?: return@mapNotNull null
             val (from, to, moved) = match.destructured
-            Move(from.toInt(), to.toInt(), moved.toInt())
+            Move(from.toIntOrNull() ?: return@mapNotNull null,
+                to.toIntOrNull() ?: return@mapNotNull null,
+                moved.toIntOrNull() ?: return@mapNotNull null)
         }
 }

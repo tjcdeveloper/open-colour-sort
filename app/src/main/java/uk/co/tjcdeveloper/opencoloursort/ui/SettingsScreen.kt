@@ -25,15 +25,19 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.setProgress
 import androidx.compose.ui.semantics.stateDescription
@@ -46,6 +50,7 @@ import uk.co.tjcdeveloper.opencoloursort.data.Settings
 import uk.co.tjcdeveloper.opencoloursort.data.ThemeMode
 import uk.co.tjcdeveloper.opencoloursort.ui.theme.Accent
 import uk.co.tjcdeveloper.opencoloursort.ui.theme.LocalScheme
+import kotlin.math.roundToInt
 
 private const val GITHUB_URL = "https://github.com/tjcdeveloper/open-colour-sort"
 
@@ -311,12 +316,20 @@ private fun ToggleRow(title: String, subtitle: String, checked: Boolean, onChang
 private fun RadiusSlider(value: Int, onChange: (Int) -> Unit) {
     val scheme = LocalScheme.current
     var trackWidthPx by remember { mutableIntStateOf(1) }
+    // Drag position lives locally so the knob follows the finger instantly;
+    // onChange fires only when the snapped value actually changes, keeping
+    // DataStore writes to one per step instead of one per drag sample.
+    var dragValue by remember { mutableStateOf<Int?>(null) }
+    // pointerInput(Unit) closures outlive recompositions; read the latest
+    // committed value through State so drag comparisons are never stale.
+    val committedValue by rememberUpdatedState(value)
     val range = Settings.MAX_TUBE_RADIUS - Settings.MIN_TUBE_RADIUS
     fun valueAt(x: Float): Int =
-        (Settings.MIN_TUBE_RADIUS + (x / trackWidthPx) * range).toInt()
+        (Settings.MIN_TUBE_RADIUS + (x / trackWidthPx) * range).roundToInt()
             .coerceIn(Settings.MIN_TUBE_RADIUS, Settings.MAX_TUBE_RADIUS)
 
-    val fraction = (value - Settings.MIN_TUBE_RADIUS).toFloat() / range
+    val shown = dragValue ?: value
+    val fraction = (shown - Settings.MIN_TUBE_RADIUS).toFloat() / range
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -324,13 +337,25 @@ private fun RadiusSlider(value: Int, onChange: (Int) -> Unit) {
             .onSizeChanged { trackWidthPx = it.width.coerceAtLeast(1) }
             .pointerInput(Unit) { detectTapGestures { offset -> onChange(valueAt(offset.x)) } }
             .pointerInput(Unit) {
-                detectHorizontalDragGestures { change, _ -> onChange(valueAt(change.position.x)) }
+                detectHorizontalDragGestures(
+                    onDragEnd = { dragValue = null },
+                    onDragCancel = { dragValue = null },
+                ) { change, _ ->
+                    val target = valueAt(change.position.x)
+                    if (target != (dragValue ?: committedValue)) onChange(target)
+                    dragValue = target
+                }
             }
             .semantics {
                 contentDescription = "Tube bottom radius"
-                stateDescription = "$value dp"
+                stateDescription = "$shown dp"
+                progressBarRangeInfo = ProgressBarRangeInfo(
+                    current = shown.toFloat(),
+                    range = Settings.MIN_TUBE_RADIUS.toFloat()..Settings.MAX_TUBE_RADIUS.toFloat(),
+                    steps = range - 1,
+                )
                 setProgress { target ->
-                    onChange(target.toInt().coerceIn(Settings.MIN_TUBE_RADIUS, Settings.MAX_TUBE_RADIUS))
+                    onChange(target.roundToInt().coerceIn(Settings.MIN_TUBE_RADIUS, Settings.MAX_TUBE_RADIUS))
                     true
                 }
             },

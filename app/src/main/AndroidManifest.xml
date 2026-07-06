@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- allowBackup MUST stay false and the extraction rules MUST exclude
+         everything: together they stop cloud backup AND device-to-device
+         transfer from moving game state off this device, per PRIVACY.md's
+         "no data ever leaves your device" commitment. -->
     <application
-        android:allowBackup="true"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"

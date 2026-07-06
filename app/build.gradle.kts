@@ -13,8 +13,8 @@ android {
         minSdk = 26
         targetSdk = 36
         // versionCode must increase on EVERY release or updates are rejected.
-        versionCode = 2
-        versionName = "0.1.4"
+        versionCode = 3
+        versionName = "0.1.5"
 
         // Testing helper: unlocks every level. false here and in release so it
         // can only ever be true in local debug builds.

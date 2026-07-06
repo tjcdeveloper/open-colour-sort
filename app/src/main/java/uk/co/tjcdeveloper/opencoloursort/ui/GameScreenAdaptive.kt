@@ -269,7 +269,8 @@ private fun UnfoldedGameScreen(
                     modifier = Modifier
                         .width(44.dp)
                         .height(44.dp)
-                        .clickable(onClick = onOverflowMenu),
+                        .clickable(onClick = onOverflowMenu, role = Role.Button)
+                        .semantics { contentDescription = "Menu" },
                     contentAlignment = Alignment.Center,
                 ) {
                     BasicText(

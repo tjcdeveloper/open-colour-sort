@@ -26,6 +26,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -62,7 +63,13 @@ fun AppRoot(
 
     when (viewModel.screen) {
         Screen.GAME -> Box {
-            Box(Modifier.alpha(if (state.isSolved || state.isStuck) 0.25f else 1f)) {
+            val dialogShowing = state.isSolved || state.isStuck
+            Box(
+                Modifier
+                    .alpha(if (dialogShowing) 0.25f else 1f)
+                    // Keep TalkBack focus off the dimmed board behind a dialog.
+                    .then(if (dialogShowing) Modifier.clearAndSetSemantics {} else Modifier),
+            ) {
                 val pack = Packs.byId(state.packId)
                 AdaptiveGameScreen(
                     state = state,

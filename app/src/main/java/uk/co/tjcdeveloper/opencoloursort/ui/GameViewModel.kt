@@ -65,10 +65,14 @@ class GameViewModel(
         // the first unsolved level of the first incomplete pack. One-shot:
         // later progress changes must not yank the player around.
         viewModelScope.launch {
+            // The guard repeats after each suspension: a pour made while the
+            // stores load must not be clobbered by resume/restore.
             if (uiState.moveCount != 0) return@launch
             val saved = sessionRepository.session.first()
+            if (uiState.moveCount != 0) return@launch
             if (saved != null && restoreSession(saved)) return@launch
             val stored = progressRepository.progress.first()
+            if (uiState.moveCount != 0) return@launch
             val (targetPack, targetLevel) = firstUnsolved(stored)
             if (targetPack != pack.id || targetLevel != levelNumber) {
                 loadLevel(targetPack, targetLevel)
@@ -80,9 +84,19 @@ class GameViewModel(
     private fun restoreSession(saved: SavedSession): Boolean {
         val savedPack = Packs.all.firstOrNull { it.slug == saved.packSlug } ?: return false
         if (saved.level !in 1..savedPack.levels.size) return false
+        // A rebaked level set makes the saved position meaningless - drop it.
+        if (saved.initialTubes != savedPack.levels[saved.level - 1]) return false
         val current = runCatching { Board.parse(saved.tubes, savedPack.capacity) }
             .getOrNull() ?: return false
         if (current.isSolved) return false
+        // A tampered/corrupt history could make undo() index out of bounds.
+        // Structural bounds only: they hold for every legitimate entry (the
+        // tube count never shrinks), so a valid session is never rejected.
+        val valid = saved.history.all {
+            it.from in current.tubes.indices && it.to in current.tubes.indices &&
+                it.moved in 1..current.capacity
+        }
+        if (!valid) return false
         pack = savedPack
         levelNumber = saved.level
         engine = GameEngine.restore(
@@ -210,6 +224,7 @@ class GameViewModel(
         val session = SavedSession(
             packSlug = pack.slug,
             level = levelNumber,
+            initialTubes = pack.levels[levelNumber - 1],
             tubes = engine.board.encode(),
             moveCount = engine.moveCount,
             undosUsed = engine.undosUsed,
